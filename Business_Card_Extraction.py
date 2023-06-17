@@ -1,10 +1,12 @@
 from streamlit_extras.add_vertical_space import add_vertical_space
+from streamlit_lottie import st_lottie
 from pymongo import MongoClient
 import streamlit as st
 import pandas as pd
 import numpy as np
 import difflib
 import easyocr
+import json
 import cv2
 import re
 import io
@@ -200,7 +202,15 @@ def get_data():
 def main():
     
     st.set_page_config(page_title = 'BizCardX', page_icon='Related images and Videos/card.png', layout='wide')
-    st.title("Business Card Extractor")
+    
+    page_title, lottie, buff= st.columns([65, 37, 5])
+
+    page_title.title('Business Card Extractor')
+
+    with open (r"Related Images and Videos/Biz.json") as f:
+        lottie_json = json.load(f)
+    with lottie:
+        st_lottie(lottie_json, height= 100, width=200)
     
     add_vertical_space(2)
     
