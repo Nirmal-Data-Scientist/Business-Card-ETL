@@ -9,7 +9,7 @@ import cv2
 import re
 import io
 
-client = MongoClient("mongodb+srv://nirmalkumar07781:Mongojuice7781@cluster1.4ibqt3k.mongodb.net/?retryWrites=true&w=majority")
+client = MongoClient(st.secrets.mongo_db.URI)
 db = client['bizcardx']
 collection = db['business_cards']
 
