@@ -201,7 +201,7 @@ def get_data():
 
 def main():
     
-    st.set_page_config(page_title = 'BizCardX', page_icon='Related images and Videos/card.png', layout='wide')
+    st.set_page_config(page_title = 'BizCardX', page_icon='Related Images and Videos/card.png', layout='wide')
     
     page_title, lottie, buff= st.columns([65, 37, 5])
 
