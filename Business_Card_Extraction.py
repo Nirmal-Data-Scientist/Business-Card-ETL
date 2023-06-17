@@ -212,8 +212,6 @@ def main():
     with lottie:
         st_lottie(lottie_json, height= 100, width=200)
     
-    add_vertical_space(2)
-    
     col, buff = st.columns([2, 1])
         
     uploaded_file = col.file_uploader("Upload an image of the business card", type=["jpg", "jpeg", "png"])
