@@ -339,7 +339,7 @@ def main():
                             key = 'excel'
                             )
         
-    st.sidebar.image('Related images and Videos/Biz.gif')
+    st.sidebar.image('Related Images and Videos/Biz.gif')
     add_vertical_space(2)
     st.sidebar.subheader("How can this app be handy?")
     st.sidebar.markdown("""
