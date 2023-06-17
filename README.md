@@ -1,5 +1,7 @@
 # Business Card Extraction web app
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://business-card-extraction.streamlit.app/)
+
 This is a simple but handy Business Card Management Web Application that allows users to extract information from business cards, store the extracted data in local MySQL database, perform operations such as updating, deleting, and retrieving the data, and also provides options to export the data in CSV, JSON, or Excel formats.
 
 ## Prerequisites
@@ -136,7 +138,7 @@ The Business Card ETL (Extract, Transform, Load) Web Application has several pot
 
 ## Streamlit web URL
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://nirmal-data-scientist-twitter-data-fetching.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://business-card-extraction.streamlit.app/)
 
 ## Disclaimer
 
