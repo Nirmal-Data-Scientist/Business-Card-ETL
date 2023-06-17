@@ -1,6 +1,6 @@
 from streamlit_extras.add_vertical_space import add_vertical_space
-from pymongo import MongoClient
 import streamlit as st
+import mysql.connector
 import pandas as pd
 import numpy as np
 import difflib
@@ -9,10 +9,34 @@ import cv2
 import re
 import io
 
-client = MongoClient("mongodb+srv://nirmalkumar07781:Mongojuice7781@cluster1.4ibqt3k.mongodb.net/?retryWrites=true&w=majority")
-db = client['bizcardx']
-collection = db['business_cards']
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password=st.secrets.sql.password,
+    database="bizcardx"
+)
 
+cursor = conn.cursor()
+
+def create_table():
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS business_cards (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255),
+            designation VARCHAR(255),
+            company_name VARCHAR(255),
+            mobile_number VARCHAR(255),
+            email VARCHAR(255),
+            website VARCHAR(255),
+            address VARCHAR(255),
+            city VARCHAR(255),
+            state VARCHAR(255),
+            pincode VARCHAR(255),
+            image LONGBLOB,
+            UNIQUE KEY unique_card (name, designation, company_name)
+        )
+    """)
+    conn.commit()
 
 def extract_information(image):
     
@@ -158,55 +182,55 @@ def extract_information(image):
     return extracted_info
 
 def insert_data(data):
-    filter = {
-        "name": data["name"],
-        "designation": data["designation"],
-        "company_name": data["company_name"]
-    }
-    collection.replace_one(filter, data, upsert=True)
+    image_data = data.pop('image')
+    values = tuple(data.values()) + (image_data,)
+
+    cursor.execute("""
+        INSERT IGNORE INTO business_cards (name, designation, company_name, mobile_number, email, website, address, city, state, pincode, image)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, values)
+    conn.commit()
 
 def get_unique_company_names():
-    result = collection.distinct('company_name')
-    return result
+    cursor.execute("SELECT DISTINCT company_name FROM business_cards")
+    result = cursor.fetchall()
+    return [row[0] for row in result]
 
 def get_person_names(company_name):
-    result = collection.find({'company_name': company_name}, {'name': 1})
-    return [row['name'] for row in result]
+    cursor.execute("SELECT name FROM business_cards WHERE company_name = %s", (company_name,))
+    result = cursor.fetchall()
+    return [row[0] for row in result]
 
-def get_person_data(company_name, person_name):
-    
-    query = {
-        'name': person_name,
-        'company_name': company_name
-    }
-    projection = {'_id': 0}  # Exclude the _id field from the result
-    result = collection.find_one(query, projection)
+def get_person_data(person_name):
+    cursor.execute("SELECT * FROM business_cards WHERE name = %s", (person_name,))
+    result = cursor.fetchone()
     return result
 
 def update_field(company_name, person_name, field, value):
-    
-    query = {'company_name': company_name, 'name': person_name}
-    update = {'$set': {field: value}}
-    collection.update_one(query, update)
+    cursor.execute(f"UPDATE business_cards SET {field} = %s WHERE company_name = %s AND name = %s", (value, company_name, person_name))
+    conn.commit()
 
 def delete_card(company_name, person_name):
-    collection.delete_one({'company_name': company_name, 'name': person_name})
+    cursor.execute("DELETE FROM business_cards WHERE company_name = %s AND name = %s", (company_name, person_name))
+    conn.commit()
 
 def get_data():
-    result = collection.find({}, {'_id': 0})
-    data = list(result)
+    cursor.execute("SELECT * FROM business_cards")
+    result = cursor.fetchall()
+    columns = [desc[0] for desc in cursor.description]
+    data = [dict(zip(columns, row)) for row in result]
     return data
 
 def main():
     
-    st.set_page_config(page_title = 'BizCardX', page_icon='Related images and Videos/card.png', layout='wide')
+    st.set_page_config(page_title = 'BizCardX', page_icon='Related Images and Videos/card.png')
     st.title("Business Card Extractor")
     
     add_vertical_space(2)
     
-    col, buff = st.columns([2, 1])
-        
-    uploaded_file = col.file_uploader("Upload an image of the business card", type=["jpg", "jpeg", "png"])
+    create_table()
+    
+    uploaded_file = st.file_uploader("Upload an image of the business card", type=["jpg", "jpeg", "png"])
     
     if uploaded_file:
         image = cv2.imdecode(np.fromstring(uploaded_file.read(), np.uint8), 1)
@@ -224,11 +248,14 @@ def main():
     if uploaded_file and extract:
         
         extracted_info = extract_information(image)
+                 
+        uploaded_image = uploaded_file.read()
+        extracted_info['image'] = uploaded_image
 
         st.subheader("Extracted Information")
         df = pd.DataFrame.from_dict(extracted_info, orient="index", columns=["Value"])
         df.index = df.index.str.replace('_', ' ').str.title()
-        st.data_editor(df, key = 'edit')
+        st.data_editor(df[:-1], key = 'edit')
         insert_data(extracted_info)        
         st.write(f"Business card saved successfully!")
         
@@ -248,11 +275,13 @@ def main():
             selected_person = col2.selectbox("Person", ["Select Person"] + person_names, key = 'person')
 
             if selected_person != "Select Person":
-                person_data = get_person_data(selected_company, selected_person)
+                person_data = get_person_data(selected_person)
 
-                df = pd.DataFrame([person_data])
-                df.columns = df.columns.str.replace("_", " ").str.title()
-                                
+                df = pd.DataFrame([person_data], columns=['ID', 'Name', 'Designation', 'Company Name', 'Mobile Number', 'Email',
+                                                        'Website', 'Address', 'City', 'State', 'Pincode', 'Image'])
+                
+                df = df.iloc[:, :-1]
+                
                 add_vertical_space(1)
                 
                 st.dataframe(df)
@@ -262,11 +291,10 @@ def main():
                 
                 if selected_field != "Select Field":
                     new_value = col4.text_input("Enter New Value", df[selected_field].iloc[0], key = 'value')
-                    col5, col6 = st.columns([2, 1.6])
+                    col5, col6 = st.columns([2, 1.7])
                     update_button = col6.button("Update Value")
-                    
+
                     if update_button:
-                        
                         selected_field = selected_field.lower().replace(' ', '_')
                         update_field(selected_company, selected_person, selected_field, new_value)
                         st.success(f"Updated {selected_field} of {selected_person} to {new_value}")
@@ -287,10 +315,12 @@ def main():
             
             if selected_person != "Select Person":
                 
-                person_data = get_person_data(selected_company, selected_person)
+                person_data = get_person_data(selected_person)
 
-                df = pd.DataFrame([person_data])
-                df.columns = df.columns.str.replace("_", " ").str.title()
+                df = pd.DataFrame([person_data], columns=['ID', 'Name', 'Designation', 'Company Name', 'Mobile Number', 'Email',
+                                                        'Website', 'Address', 'City', 'State', 'Pincode', 'Image'])
+                
+                df = df.iloc[:, :-1]
                 
                 st.dataframe(df)
                 
@@ -307,7 +337,9 @@ def main():
         
         data = get_data()
 
-        df = pd.DataFrame(data)[1:]
+        data_without_image = [{key: value for key, value in record.items() if key != 'image' and key != 'id'} for record in data]
+
+        df = pd.DataFrame(data_without_image)
 
         csv_bytes = df.to_csv(index=False).encode()
         col1.download_button("Download CSV file", data=csv_bytes,
@@ -328,15 +360,9 @@ def main():
                             mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                             key = 'excel'
                             )
-        
-    st.sidebar.image('Related images and Videos/Biz.gif')
-    add_vertical_space(2)
-    st.sidebar.subheader("How can this app be handy?")
-    st.sidebar.markdown("""
-                        - Simplify the extraction, transformation, and loading of information from business cards.
-                        - Capture and manage essential details like names, designations, contact information, and more.
-                        - Stay organized, save time, and eliminate manual data entry with this BizcardX webapp.
-                        """)
+
+    cursor.close()
+    conn.close()
 
 if __name__ == "__main__":
     main()
