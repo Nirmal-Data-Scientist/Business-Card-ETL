@@ -133,7 +133,7 @@ The Business Card ETL (Extract, Transform, Load) Web Application has several pot
 
 ## Web App Demo Video
 
-<a href="https://www.linkedin.com/posts/nirmal-kumar-data-scientist_twitter-datascience-webapp-activity-7049124308266225664-ybTW?utm_source=share&utm_medium=member_desktop" target="_blank">Demo Video</a>
+<a href="https://www.linkedin.com/posts/nirmal-data-scientist_businesscardetl-productivity-automation-activity-7075964385311014912-IzcY?utm_source=share&utm_medium=member_desktop" target="_blank">Demo Video</a>
 
 ## Streamlit web URL
 
