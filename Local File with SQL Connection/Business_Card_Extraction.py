@@ -1,10 +1,12 @@
 from streamlit_extras.add_vertical_space import add_vertical_space
+from streamlit_lottie import st_lottie
 import streamlit as st
 import mysql.connector
 import pandas as pd
 import numpy as np
 import difflib
 import easyocr
+import json
 import cv2
 import re
 import io
@@ -58,6 +60,7 @@ def extract_information(image):
     }
 
     extracted_lines = [text[1] for text in result]
+    
     # Extract name
     if extracted_lines:
         extracted_info['name'] = extracted_lines.pop(0).title()
@@ -85,7 +88,7 @@ def extract_information(image):
     for line in extracted_lines:
         email = re.search(r'[\w\.-]+@[\w\.-]+', line)
         if email:
-            extracted_info['email'] = email.group(0)
+            extracted_info['email'] = email.group()
             extracted_lines.remove(line)
             break
 
@@ -201,8 +204,8 @@ def get_person_names(company_name):
     result = cursor.fetchall()
     return [row[0] for row in result]
 
-def get_person_data(person_name):
-    cursor.execute("SELECT * FROM business_cards WHERE name = %s", (person_name,))
+def get_person_data(company_name, person_name):
+    cursor.execute("SELECT * FROM business_cards WHERE name = %s AND company_name = %s", (person_name, company_name))
     result = cursor.fetchone()
     return result
 
@@ -223,14 +226,22 @@ def get_data():
 
 def main():
     
-    st.set_page_config(page_title = 'BizCardX', page_icon='Related Images and Videos/card.png')
-    st.title("Business Card Extractor")
+    st.set_page_config(page_title = 'BizCardX', layout='wide', page_icon='Related Images and Videos/card.png')
     
-    add_vertical_space(2)
+    page_title, lottie, buff= st.columns([65, 37, 5])
+
+    page_title.title('Business Card Extractor')
+
+    with open (r"Related Images and Videos/Biz.json") as f:
+        lottie_json = json.load(f)
+    with lottie:
+        st_lottie(lottie_json, height= 100, width=200)
     
     create_table()
     
-    uploaded_file = st.file_uploader("Upload an image of the business card", type=["jpg", "jpeg", "png"])
+    col, buff = st.columns([2, 1])
+        
+    uploaded_file = col.file_uploader("Upload an image of the business card", type=["jpg", "jpeg", "png"])
     
     if uploaded_file:
         image = cv2.imdecode(np.fromstring(uploaded_file.read(), np.uint8), 1)
@@ -248,14 +259,14 @@ def main():
     if uploaded_file and extract:
         
         extracted_info = extract_information(image)
-                 
-        uploaded_image = uploaded_file.read()
-        extracted_info['image'] = uploaded_image
-
+        
         st.subheader("Extracted Information")
         df = pd.DataFrame.from_dict(extracted_info, orient="index", columns=["Value"])
         df.index = df.index.str.replace('_', ' ').str.title()
-        st.data_editor(df[:-1], key = 'edit')
+        st.data_editor(df, key = 'edit')
+        
+        image = image.dumps()
+        extracted_info['image'] = image
         insert_data(extracted_info)        
         st.write(f"Business card saved successfully!")
         
@@ -275,7 +286,7 @@ def main():
             selected_person = col2.selectbox("Person", ["Select Person"] + person_names, key = 'person')
 
             if selected_person != "Select Person":
-                person_data = get_person_data(selected_person)
+                person_data = get_person_data(selected_company, selected_person)
 
                 df = pd.DataFrame([person_data], columns=['ID', 'Name', 'Designation', 'Company Name', 'Mobile Number', 'Email',
                                                         'Website', 'Address', 'City', 'State', 'Pincode', 'Image'])
@@ -315,7 +326,7 @@ def main():
             
             if selected_person != "Select Person":
                 
-                person_data = get_person_data(selected_person)
+                person_data = get_person_data(selected_company, selected_person)
 
                 df = pd.DataFrame([person_data], columns=['ID', 'Name', 'Designation', 'Company Name', 'Mobile Number', 'Email',
                                                         'Website', 'Address', 'City', 'State', 'Pincode', 'Image'])
@@ -363,6 +374,15 @@ def main():
 
     cursor.close()
     conn.close()
+    
+    st.sidebar.image('Related Images and Videos/Biz.gif')
+    add_vertical_space(2)
+    st.sidebar.subheader("How can this app be handy?")
+    st.sidebar.markdown("""
+                        - Simplify the extraction, transformation, and loading of information from business cards.
+                        - Capture and manage essential details like names, designations, contact information, and more.
+                        - Stay organized, save time, and eliminate manual data entry with this BizcardX webapp.
+                        """)
 
 if __name__ == "__main__":
     main()
