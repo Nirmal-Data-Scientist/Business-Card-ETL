@@ -2,7 +2,7 @@
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://business-card-extraction.streamlit.app/)
 
-This is a simple but handy Business Card Management Web Application that allows users to extract information from business cards, store the extracted data in local MySQL database, perform operations such as updating, deleting, and retrieving the data, and also provides options to export the data in CSV, JSON, or Excel formats.
+This is a simple but handy Business Card Management Web Application that allows users to extract information from business cards, store the extracted data in local MySQL database (In cloud, I have used Mongo DB), perform operations such as updating, deleting, and retrieving the data, and also provides options to export the data in CSV, JSON, or Excel formats.
 
 ## Prerequisites
 
@@ -119,7 +119,7 @@ The Business Card ETL (Extract, Transform, Load) Web Application has several pot
 
 4. ##### Limitations in Streamlit Cloud Environment:
 
-   The app relies on a local database connection to store and retrieve business card data. However, Streamlit Cloud does not currently provide proper support for connecting to local databases from cloud-deployed applications and this is under development using st.experimental_connection() right now. As a result, this app won't work in a Streamlit Cloud environment without additional modifications or alternative cloud database hosting options.
+   The app relies on a local database connection to store and retrieve business card data. However, Streamlit Cloud does not currently provide proper support for connecting to local databases from cloud-deployed applications and this is under development using st.experimental_connection() right now. As a result, this app won't work in a Streamlit Cloud environment without additional modifications or alternative cloud database hosting options. So, I have used MongoDB  atlas database for cloud version of the app.
 
 ## Web App Snap
 
